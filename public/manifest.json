@@ -1,0 +1,63 @@
+{
+    "manifest_version": 3,
+    "name": "1688 Product Detail Tool",
+    "version": "1.0.1",
+    "permissions": [
+        "webRequest",
+        "tabs",
+        "activeTab",
+        "scripting",
+        "cookies",
+        "webNavigation"
+      ],
+    "content_security_policy": {
+        "extension_pages": "script-src 'self'; object-src 'self';"
+    },
+    "icons": {
+        "16": "icons/16.png",
+        "19": "icons/19.png",
+        "38": "icons/38.png",
+        "48": "icons/48.png",
+        "128": "icons/128.png"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://detail.1688.com/*"
+            ],
+            "js": [
+                "tabnoise.js",
+                "contentScript.js",
+                "main.js"
+            ],
+            "runAt": "document_start",
+            "all_frames": true
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "contentScript.js",
+                "main.js"
+            ],
+            "matches": [
+                "https://detail.1688.com/*"
+            ]
+        }
+    ],
+    "background": {
+        "service_worker": "background.js",
+        "type" : "module"
+      },
+    "externally_connectable": {
+        "matches": [
+            "https://*.firebaseapp.com/",
+            "https://*.firestore.googleapis.com/",
+            "https://googleapis.com/*",
+            "https://*.googleapis.com/*"
+        ]
+    },
+    "host_permissions": [
+        "https://detail.1688.com/*"
+    ]
+}

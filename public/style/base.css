@@ -1,0 +1,32 @@
+body {
+    width: 75% !important;
+    position: absolute !important;
+}
+
+/* #extension {
+    position: fixed !important;
+    right: 0 !important;
+    top: 25% !important;
+    width: 25% !important;
+    height: 50% !important;
+    overflow: auto !important;
+    background-color: white !important;
+    /* Or any color you prefer */
+/* } */ 
+
+
+#extension {
+    position:fixed;
+    background-color:#FFD600;
+    z-index: 999;
+    padding:10px;
+    border-top-left-radius: 25px;
+    border-bottom-left-radius: 25px;
+    height: 480px;
+    width: 150;
+    top:150px;
+    right:0px;
+    box-shadow: 0 8px 6px -4px black;
+}
+
+
