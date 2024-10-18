@@ -17,7 +17,7 @@ export const clientTypesense = new Typesense.Client({
 
 export const addOrUpdateDocument = async (documentData, indexName) => {
   try {
-    const documentWithId = { ...documentData, id: documentData.itemid };  // Set ID di sini
+    const documentWithId = { ...documentData, id: documentData.product_id };  // Set ID di sini
     try {
       // Coba ambil dokumen dengan ID yang sama
       await clientTypesense.collections(indexName).documents(documentWithId.id).retrieve();

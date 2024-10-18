@@ -7,6 +7,7 @@ import { setDocumentFirebase } from './api/firebaseApi';
 import * as Sentry from '@sentry/react';
 import { addOrUpdateDocument } from './api/typeSense';
 import { data_product_detail } from './utils/exampleDataResult';
+import { translateText } from './api/translateUtils';
 
 function App() {
   const globalState = useUserStore();
@@ -22,34 +23,40 @@ function App() {
         // const mainData = interceptedDataFromStorage[interceptedDataFromStorage.length - 1]?.data?.CategoryProducts?.data
         const { data, globalData } = interceptedDataFromStorage
 
+        const translateTitle = await translateText(globalData.tempModel?.offerTitle)
+        // console.log(translateTitle, 'this is title')
         //variant group
         let groupedVariantData
         const skuModel = globalData?.skuModel
 
-        console.log(skuModel)
+        // console.log(skuModel)
 
-        if((Array.isArray(skuModel?.skuProps) && skuModel?.skuProps?.length !== 0) || typeof skuModel?.skuProps === 'object' ) {
+        if ((Array.isArray(skuModel?.skuProps) && skuModel?.skuProps?.length !== 0) || typeof skuModel?.skuProps === 'object') {
           const { skuProps } = skuModel;
           const { skuInfoMap } = skuModel;
-          
-          const groupedData = skuProps[0].value.map((item) => {
+        
+          // Use Promise.all to resolve all promises returned by the map function
+          const groupedData = await Promise.all(skuProps[0].value.map(async (item) => {
             const name = item.name;
             const skuInfo = skuInfoMap[name]; // Find matching data in skuInfoMap
-          
+        
+            // Translate title
+            const variantNameTranslate = await translateText(name);
+        
             return {
               ...item, // Spread the properties of the original object (name, imageUrl)
               ...skuInfo, // Add the matching skuInfoMap data
-              title: item?.name,
+              title: variantNameTranslate?.data || item?.name,
               titleOri: item?.name,
-              price: skuInfo?.price,
+              price: skuInfo?.price || skuInfo?.discountPrice,
               skuId: skuInfo?.skuId,
+              image_parent: item?.imageUrl || '',
               amountOnSale: skuInfo?.canBookCount,
               stock: skuInfo?.canBookCount,
-              description: JSON.parse(htmlDescriptionData)?.data || ''
             };
-          });
-
-          groupedVariantData = groupedData
+          }));
+        
+          groupedVariantData = groupedData; // Now the promises are resolved
         }
 
         //image
@@ -66,7 +73,7 @@ function App() {
           typeOfPrice = priceType
         }
         
-        console.log(groupedVariantData); 
+        // console.log(groupedVariantData); 
         
         const weightObjectKey = '1081181309884';
 
@@ -74,19 +81,20 @@ function App() {
           product_id:`${globalData?.tempModel?.offerId}`,
           category: {id: globalData?.tempModel?.postCategoryId, name: 'default'},
           platformType: '1688',
-          description: '',
+          description: JSON.parse(htmlDescriptionData)?.data || '',
           moq: globalData?.orderParamModel?.orderParam?.beginNum,
-          title: globalData.tempModel?.offerTitle,
-          price: globalData?.orderParamModel?.orderParam?.skuParam?.skuRangePrices,
-          priceType: typeOfPrice,
+          title: translateTitle?.data || globalData.tempModel?.offerTitle,
+          prices: parseFloat(globalData?.orderParamModel?.orderParam?.skuParam?.skuRangePrices[0]?.price),
+          price_type: typeOfPrice,
           sold: globalData?.tempModel?.saledCount,
           stock: globalData?.orderParamModel?.orderParam?.canBookedAmount,
           price_ranges: globalData?.orderParamModel?.orderParam?.skuParam?.skuRangePrices?.length > 0 ? globalData?.orderParamModel?.orderParam?.skuParam?.skuRangePrices : [],
           product_images: imageProduct,
-          variants: [{variant_items: groupedVariantData }],
-          variant_type: skuModel?.skuInfoMap?.length > 0 ? 'mutliple_items' : 'no_variants',
+          variants: [{name: translateTitle?.data, image: imageProduct[0]?.link, variant_items: groupedVariantData }],
+          variant_type: skuModel?.skuInfoMap?.length === 0 ? 'no_variants' : 'multiple_items',
           productUrl: window.location.href,
-          weight: data[weightObjectKey]?.data?.freightInfo?.unitWeight,
+          weight: data[weightObjectKey]?.data?.freightInfo?.unitWeight || null,
+          currency: 'rmb',
           supplier: {
             url: globalData?.offerBaseInfo?.sellerWinportUrl,
             id: globalData?.offerBaseInfo?.sellerUserId,
@@ -94,10 +102,9 @@ function App() {
           }
         }
 
-        console.log(mainData, 'this is main data')
+        console.log('data =>', mainData)
       }
 
-      console.log(interceptedDataFromStorage)
       // if(interceptedDataFromStorage?.globalData) addProduct1688(interceptedDataFromStorage?.globalData)
     } catch (error) {
       Sentry.captureException(error);
@@ -106,9 +113,9 @@ function App() {
   };
 
   const addProduct1688 = async (data) => {
-    console.log(data, 'ooooh')
+    // console.log(data, 'this is the data')
     if(data) {
-    try {
+      try {
         const resAdd = await setDocumentFirebase('product_details', `${data?.product_id}`, data);
         console.log(resAdd, 'success add data')
         
@@ -121,8 +128,10 @@ function App() {
         Sentry.captureException(error);
         console.error('Error while processing item:', error);
         throw new Error(error);
+      } finally {
+        alert('Data saved')
       }
-      }
+    }
   }
 
   useEffect(() => {
